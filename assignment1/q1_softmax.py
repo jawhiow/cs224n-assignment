@@ -87,11 +87,17 @@ def test_softmax():
     """
     print("Running your tests...")
     ### YOUR CODE HERE
-    raise NotImplementedError
+    res = softmax(np.array([[1001, 1004], [3, 4]]))
+    print("res is :")
+    print(res)
+    ans = np.array([[0.04742587, 0.95257413],
+                    [0.26894142, 0.73105858]])
+    print("ans is :")
+    print(ans)
+    assert np.allclose(res, ans, rtol=1e-05, atol=1e-06)
     ### END YOUR CODE
 
 
 if __name__ == "__main__":
     test_softmax_basic()
-    # test_softmax()
-    # print(softmax(np.array([[1001, 1004], [3, 4]])))
+    test_softmax()
