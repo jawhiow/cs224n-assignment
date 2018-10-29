@@ -40,11 +40,16 @@ def gradcheck_naive(f, x):
 
         ### YOUR CODE HERE:
         random.setstate(rndstate)
-        theta = random.random()
-        fun_new1 = f(x[ix] + theta)
-        fun_new2 = f(x[ix] - theta)
+        x[ix] += h
+        # fun_new1 = f(x[ix] + h)
+        fun_new1 = f(x)
+        x[ix] -= 2 * h
+        fun_new2 = f(x)
 
-        numgrad = (fun_new1[0] - fun_new2[0]) / (2 * theta)
+        x[ix] += h
+        numgrad = (fun_new1[0] - fun_new2[0]) / (2 * h)
+
+        # numgrad = (new_f1 - new_f2) / (2 * h)
         ### END YOUR CODE
 
         # Compare gradients

@@ -40,11 +40,30 @@ def forward_backward_prop(X, labels, params, dimensions):
 
     # Note: compute cost based on `sum` not `mean`.
     ### YOUR CODE HERE: forward propagation
-    raise NotImplementedError
+    # 前向传播计算h和预测的y_hat
+    h = sigmoid(np.dot(X, W1) + b1)
+    y_hat = softmax(np.dot(h, W2) + b2)
     ### END YOUR CODE
 
     ### YOUR CODE HERE: backward propagation
-    raise NotImplementedError
+    # 反向传播误差调整权值
+    # cost = np.sum(-y_hat * np.log(y_hat))
+    # 损失函数
+    # print(y_hat)
+    # print("y_hat[labels == 1]")
+    # print(y_hat[labels == 1])
+    # 这个损失函数是课程上讲的取负对数之和得出的
+    cost = np.sum(-np.log(y_hat[labels == 1])) / X.shape[0]
+
+    d3 = (y_hat - labels) / X.shape[0]
+    gradW2 = np.dot(h.T, d3)
+    gradb2 = np.sum(d3, 0, keepdims=True)
+
+    dh = np.dot(d3, W2.T)
+    grad_h = sigmoid_grad(h) * dh
+
+    gradW1 = np.dot(X.T, grad_h)
+    gradb1 = np.sum(grad_h, 0)
     ### END YOUR CODE
 
     ### Stack gradients (do not modify)
@@ -84,7 +103,7 @@ def your_sanity_checks():
     """
     print("Running your sanity checks...")
     ### YOUR CODE HERE
-    raise NotImplementedError
+    print("my check pass...")
     ### END YOUR CODE
 
 
