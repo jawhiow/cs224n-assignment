@@ -41,29 +41,49 @@ def forward_backward_prop(X, labels, params, dimensions):
     # Note: compute cost based on `sum` not `mean`.
     ### YOUR CODE HERE: forward propagation
     # 前向传播计算h和预测的y_hat
-    h = sigmoid(np.dot(X, W1) + b1)
-    y_hat = softmax(np.dot(h, W2) + b2)
+
+    A0 = X                      # shape(样本，特征) 20 * 10
+    z1 = np.dot(A0, W1) + b1    # shape(样本，节点) 20 * 5
+    A1 = sigmoid(z1)            # shape(样本，节点) 20 * 5
+    z2 = np.dot(A1, W2) + b2    # shape(样本，类别) 20 * 10
+    A2 = softmax(z2)            # shape(样本，列别) 20 * 10
+
+    h = A1
+    y_hat = A2
+
+
     ### END YOUR CODE
 
     ### YOUR CODE HERE: backward propagation
-    # 反向传播误差调整权值
-    # cost = np.sum(-y_hat * np.log(y_hat))
     # 损失函数
-    # print(y_hat)
-    # print("y_hat[labels == 1]")
-    # print(y_hat[labels == 1])
-    # 这个损失函数是课程上讲的取负对数之和得出的
     cost = np.sum(-np.log(y_hat[labels == 1])) / X.shape[0]
 
-    d3 = (y_hat - labels) / X.shape[0]
-    gradW2 = np.dot(h.T, d3)
-    gradb2 = np.sum(d3, 0, keepdims=True)
+    # 反向传播
+                                    # A0 shape = (样本个数, 样本维度)(20, 10)
+    N = X.shape[0]                  # N = 20
+    Y = labels                      # shape = (样本,类别)(20, 10)
+    dJ_dz2 = (A2 - Y) / N           # shape = ()(20, 10)
+    dJ_dA1 = np.dot(dJ_dz2, W2.T)   # shape = ()(20, 5)
+    # //TODO 这里为什么不用矩阵乘法
+    dJ_dz1 = dJ_dA1 * sigmoid_grad(A1)  # shape = ()(20, 5)
+    # //TODO 这里求出来的结果有什么用
+    dJ_dA0 = np.dot(dJ_dz1, W1.T)       # shape = ()(20, 10)
+    # 转换一下
+    # //TODO 这里为什么要对W求导
+    gradW2 = np.dot(A1.T, dJ_dz2)   # shape()(5, 10)
+    gradb2 = np.sum(dJ_dz2, 0, keepdims=True)   # shape()(1,10)
+    gradW1 = np.dot(A0.T, dJ_dz1)   # shape()(10,5)
+    gradb1 = np.sum(dJ_dz1, 0)      # shape()(5,)
 
-    dh = np.dot(d3, W2.T)
-    grad_h = sigmoid_grad(h) * dh
-
-    gradW1 = np.dot(X.T, grad_h)
-    gradb1 = np.sum(grad_h, 0)
+    # d3 = (y_hat - labels) / X.shape[0]
+    # gradW2 = np.dot(h.T, d3)
+    # gradb2 = np.sum(d3, 0, keepdims=True)
+    #
+    # dh = np.dot(d3, W2.T)
+    # grad_h = sigmoid_grad(h) * dh
+    #
+    # gradW1 = np.dot(X.T, grad_h)
+    # gradb1 = np.sum(grad_h, 0)
     ### END YOUR CODE
 
     ### Stack gradients (do not modify)
