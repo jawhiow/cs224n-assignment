@@ -3,6 +3,7 @@
 import argparse
 import numpy as np
 import matplotlib
+
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import itertools
@@ -10,7 +11,7 @@ import itertools
 from utils.treebank import StanfordSentiment
 import utils.glove as glove
 
-from q3_sgd import load_saved_params, sgd
+from .q3_sgd import load_saved_params, sgd
 
 # We will use sklearn here because it will run faster than implementing
 # ourselves. However, for other parts of this assignment you must implement
@@ -61,7 +62,7 @@ def getRegularizationValues():
 
     Return a sorted list of values to try.
     """
-    values = None   # Assign a list of floats in the block below
+    values = None  # Assign a list of floats in the block below
     ### YOUR CODE HERE
     raise NotImplementedError
     ### END YOUR CODE
@@ -97,7 +98,7 @@ def chooseBestModel(results):
 
 def accuracy(y, yhat):
     """ Precision for classifier """
-    assert(y.shape == yhat.shape)
+    assert (y.shape == yhat.shape)
     return np.sum(y == yhat) * 100.0 / y.size
 
 
@@ -115,7 +116,7 @@ def plotRegVsAccuracy(regValues, results, filename):
 def outputConfusionMatrix(features, labels, clf, filename):
     """ Generate a confusion matrix """
     pred = clf.predict(features)
-    cm = confusion_matrix(labels, pred, labels=range(5))
+    cm = confusion_matrix(labels, pred, labels=list(range(5)))
     plt.figure()
     plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Reds)
     plt.colorbar()
@@ -124,7 +125,7 @@ def outputConfusionMatrix(features, labels, clf, filename):
     plt.xticks(tick_marks, classes)
     plt.yticks(tick_marks, classes)
     thresh = cm.max() / 2.
-    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+    for i, j in itertools.product(list(range(cm.shape[0])), list(range(cm.shape[1]))):
         plt.text(j, i, cm[i, j],
                  horizontalalignment="center",
                  color="white" if cm[i, j] > thresh else "black")
@@ -138,10 +139,10 @@ def outputPredictions(dataset, features, labels, clf, filename):
     """ Write the predictions to file """
     pred = clf.predict(features)
     with open(filename, "w") as f:
-        print >> f, "True\tPredicted\tText"
-        for i in xrange(len(dataset)):
-            print >> f, "%d\t%d\t%s" % (
-                labels[i], pred[i], " ".join(dataset[i][0]))
+        print("True\tPredicted\tText", file=f)
+        for i in range(len(dataset)):
+            print("%d\t%d\t%s" % (
+                labels[i], pred[i], " ".join(dataset[i][0])), file=f)
 
 
 def main(args):
@@ -155,7 +156,7 @@ def main(args):
     if args.yourvectors:
         _, wordVectors, _ = load_saved_params()
         wordVectors = np.concatenate(
-            (wordVectors[:nWords,:], wordVectors[nWords:,:]),
+            (wordVectors[:nWords, :], wordVectors[nWords:, :]),
             axis=1)
     elif args.pretrained:
         wordVectors = glove.loadWordVectors(tokens)
@@ -166,7 +167,7 @@ def main(args):
     nTrain = len(trainset)
     trainFeatures = np.zeros((nTrain, dimVectors))
     trainLabels = np.zeros((nTrain,), dtype=np.int32)
-    for i in xrange(nTrain):
+    for i in range(nTrain):
         words, trainLabels[i] = trainset[i]
         trainFeatures[i, :] = getSentenceFeatures(tokens, wordVectors, words)
 
@@ -175,7 +176,7 @@ def main(args):
     nDev = len(devset)
     devFeatures = np.zeros((nDev, dimVectors))
     devLabels = np.zeros((nDev,), dtype=np.int32)
-    for i in xrange(nDev):
+    for i in range(nDev):
         words, devLabels[i] = devset[i]
         devFeatures[i, :] = getSentenceFeatures(tokens, wordVectors, words)
 
@@ -184,7 +185,7 @@ def main(args):
     nTest = len(testset)
     testFeatures = np.zeros((nTest, dimVectors))
     testLabels = np.zeros((nTest,), dtype=np.int32)
-    for i in xrange(nTest):
+    for i in range(nTest):
         words, testLabels[i] = testset[i]
         testFeatures[i, :] = getSentenceFeatures(tokens, wordVectors, words)
 
@@ -192,27 +193,27 @@ def main(args):
     results = []
     regValues = getRegularizationValues()
     for reg in regValues:
-        print "Training for reg=%f" % reg
+        print("Training for reg=%f" % reg)
         # Note: add a very small number to regularization to please the library
-        clf = LogisticRegression(C=1.0/(reg + 1e-12))
+        clf = LogisticRegression(C=1.0 / (reg + 1e-12))
         clf.fit(trainFeatures, trainLabels)
 
         # Test on train set
         pred = clf.predict(trainFeatures)
         trainAccuracy = accuracy(trainLabels, pred)
-        print "Train accuracy (%%): %f" % trainAccuracy
+        print("Train accuracy (%%): %f" % trainAccuracy)
 
         # Test on dev set
         pred = clf.predict(devFeatures)
         devAccuracy = accuracy(devLabels, pred)
-        print "Dev accuracy (%%): %f" % devAccuracy
+        print("Dev accuracy (%%): %f" % devAccuracy)
 
         # Test on test set
         # Note: always running on test is poor style. Typically, you should
         # do this only after validation.
         pred = clf.predict(testFeatures)
         testAccuracy = accuracy(testLabels, pred)
-        print "Test accuracy (%%): %f" % testAccuracy
+        print("Test accuracy (%%): %f" % testAccuracy)
 
         results.append({
             "reg": reg,
@@ -222,20 +223,20 @@ def main(args):
             "test": testAccuracy})
 
     # Print the accuracies
-    print ""
-    print "=== Recap ==="
-    print "Reg\t\tTrain\tDev\tTest"
+    print("")
+    print("=== Recap ===")
+    print("Reg\t\tTrain\tDev\tTest")
     for result in results:
-        print "%.2E\t%.3f\t%.3f\t%.3f" % (
+        print("%.2E\t%.3f\t%.3f\t%.3f" % (
             result["reg"],
             result["train"],
             result["dev"],
-            result["test"])
-    print ""
+            result["test"]))
+    print("")
 
     bestResult = chooseBestModel(results)
-    print "Best regularization value: %0.2E" % bestResult["reg"]
-    print "Test accuracy (%%): %f" % bestResult["test"]
+    print("Best regularization value: %0.2E" % bestResult["reg"])
+    print("Test accuracy (%%): %f" % bestResult["test"])
 
     # do some error analysis
     if args.pretrained:
