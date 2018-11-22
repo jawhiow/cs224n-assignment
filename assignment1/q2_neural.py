@@ -58,35 +58,32 @@ def forward_backward_prop(X, labels, params, dimensions):
     # 损失函数
     cost = np.sum(-np.log(y_hat[labels == 1])) / X.shape[0]
 
-    # 反向传播
-                                    # A0 shape = (样本个数, 样本维度)(20, 10)
-    N = X.shape[0]                  # N = 20
-    Y = labels                      # shape = (样本,类别)(20, 10)
-    dJ_dz2 = (A2 - Y) / N           # shape = ()(20, 10)
-    dJ_dA1 = np.dot(dJ_dz2, W2.T)   # shape = ()(20, 5)
-    # //TODO 这里为什么不用矩阵乘法
-    dJ_dz1 = dJ_dA1 * sigmoid_grad(A1)  # shape = ()(20, 5)
-    # //TODO 这里求出来的结果有什么用
-    dJ_dA0 = np.dot(dJ_dz1, W1.T)       # shape = ()(20, 10)
-    # 转换一下
-    # //TODO 这里为什么要对W求导
-    gradW2 = np.dot(A1.T, dJ_dz2)   # shape()(5, 10)
-    gradb2 = np.sum(dJ_dz2, 0, keepdims=True)   # shape()(1,10)
-    gradW1 = np.dot(A0.T, dJ_dz1)   # shape()(10,5)
-    gradb1 = np.sum(dJ_dz1, 0)      # shape()(5,)
+    # 新反向传播
+    N = X.shape[0]  # N = 20
+    y = labels                          # 维度=(20,10)=(样本，分类)
+    # dCE/dz2
+    # //TODO 为什么这里要除以一个N
+    delta3 = (y_hat - y) / N            # 维度=(20,10)=(样本，分类)
+    # dCE/dh
+    delta2 = np.dot(delta3, W2.T)       # 维度=(20,5)=(样本，隐藏层节点)
+    # dCE/dz1
+    delta1 = delta2 * sigmoid_grad(h)   # 维度=(20,5)=(样本，隐藏层节点)
+    # dCE/dx
+    delta0 = np.dot(delta1, W1.T)       # 维度=(20,10)=(样本，分类)
 
-    # d3 = (y_hat - labels) / X.shape[0]
-    # gradW2 = np.dot(h.T, d3)
-    # gradb2 = np.sum(d3, 0, keepdims=True)
-    #
-    # dh = np.dot(d3, W2.T)
-    # grad_h = sigmoid_grad(h) * dh
-    #
-    # gradW1 = np.dot(X.T, grad_h)
-    # gradb1 = np.sum(grad_h, 0)
+    # dCE/dw2
+    gradW2 = np.dot(h.T, delta3)        # 维度=(5,10)=(隐藏层节点，分类)
+    # dCE/db2
+    gradb2 = np.sum(delta3, 0, keepdims=True)  # 维度=(1,10)=(，分类)
+    # dCE/dw1
+    gradW1 = np.dot(X.T, delta1)        # 维度=(10,5)=(分类，隐藏层节点)
+    # dCE/db1
+    gradb1 = np.sum(delta1, 0)          # 维度=(1,5)=(，分类)
+
     ### END YOUR CODE
 
     ### Stack gradients (do not modify)
+    # 这里是一个连接操作
     grad = np.concatenate((gradW1.flatten(), gradb1.flatten(),
                            gradW2.flatten(), gradb2.flatten()))
 
