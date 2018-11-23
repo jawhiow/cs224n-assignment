@@ -61,28 +61,37 @@ def softmaxCostAndGradient(predicted, target, outputVectors, dataset):
     """
 
     ### YOUR CODE HERE
-    # predicted shape=(样本数量,)(3, )
-    # target = scala,目标单词的索引
-    # outputVectors shape=(5, 3)
+    # predicted shape=(样本数量,)(3, ) 预测的单词
+    # target = integer 目标单词的索引
+    # outputVectors shape=(5, 3) 词库
     # dataset 这里没用上
 
-    W1 = predicted  # shape=(节点，1)  (3， 1)
-
+    # 变成我们熟悉的内容
     # forward propagation
-    A0 = outputVectors  # shape=(样本, 特征) (5, 3)
-    Z1 = np.dot(A0, W1)  # shape=(5, 1)
-    A1 = softmax(Z1)  # shape=(5, 1)
+    # z = wx + b
+    W1 = predicted        # shape=(3,1)=(特征，)
+    X = outputVectors     # shape=(5,3)=(样本，特征)
+    Z1 = np.dot(X, W1)    # shape=(5,1)=(样本，)
+    # y_hat = softmax(z)
+    y_hat = softmax(Z1)   # shape=(5,1)=(样本，)
 
     # compute cost
-    cost = -np.log(A1[target])
+    # 这里交叉熵为一个单词的损失函数，所以真实值为y=1
+    cost = -np.log(y_hat[target])  #shape=是一个标量
 
     # backward propagation
-    A1[target] -= 1.0
-    dW1 = np.dot(A0.T, A1)  # shape=(1, 3) = (1, 5) * (5, 3)
-    dZ1 = np.outer(A1, W1)  # shape=(5, 3) = (5, 1) * (3, 1).T
+    # 这里的y_hat - y = y_hat - 1.0,代表的是交叉熵的损失函数的梯度
+    # dCE / dz
+    delta3 = y_hat.copy()
+    delta3[target] -= 1.0    # shape=(5,1)=(样本，)
+    # dCE / dW1
+    delta2 = np.dot(X.T, delta3)  # shape=(3,1)=(特征，)
+    # grad
+    # //TODO 这里到底是为什么
+    dZ1 = np.outer(delta3, W1)  # shape=(5, 3) = (5, 1) * (3, 1).T
 
     ### END YOUR CODE
-    gradPred = dW1
+    gradPred = delta2
     grad = dZ1
 
     return cost, gradPred, grad
@@ -123,22 +132,25 @@ def negSamplingCostAndGradient(predicted, target, outputVectors, dataset,
 
     W1 = predicted   # shape=(节点，1)  (3， 1)
     # forward propagation
-    A0 = outputVectors  # shape=(样本, 特征) (5, 3)
-    Z1 = np.dot(A0, W1) # shape=(5, 1)
-    A1 = softmax(Z1)    # shape=(5, 1)
+    X = outputVectors  # shape=(样本, 特征) (5, 3)
+    Z1 = np.dot(X, W1) # shape=(5, 1)=(样本, )
+    y_hat = softmax(Z1)   # shape=(5, 1)
 
     # cost function
-    cost = -np.log(A1[target])
+    cost = -np.log(y_hat[target])
 
     # backward propagation
-    A1[target] -= 1.0
-    dW1 = np.dot(A0.T, A1)  # shape = (3, 5)*(5, 1) = (特征,)(3, 1)
-    dZ1 = np.outer(A1, W1)  # shape=(5, 3) = (5, 1) * (3, 1).T
-    gradPred = dW1
+    delta3 = y_hat.copy()      # shape=(5,1)=(样本，)
+    delta3[target] -= 1.0
+    # dCE / dW1
+    delta2 = np.dot(X.T, y_hat)   # shape = (3, 5)*(5, 1) = (特征,)(3, 1)
+    dZ1 = np.outer(y_hat, W1)     # shape=(5, 3) = (5, 1) * (3, 1).T
+    gradPred = delta2
     grad = dZ1
 
     for k in range(K):
         # sigmod(-x) = 1 - sigmod(x)
+        # 这里是负采样推导的梯度
         out2 = sigmoid(-1 * outputVectors[indices[k + 1]].dot(predicted))
         cost += -np.log(out2)
         grad[indices[k + 1]] += - (out2 - 1) * predicted
