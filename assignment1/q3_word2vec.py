@@ -146,7 +146,7 @@ def negSamplingCostAndGradient(predicted, target, outputVectors, dataset,
     # dJ / dvc
     gradPred += (y_hat - 1) * u_o
     # dJ / duo
-    grad[predicted] += (y_hat - 1) * v_c
+    grad[target] += (y_hat - 1) * v_c
     for k in range(K):
         # sigmod(-x) = 1 - sigmod(x)
         # 这里是负采样推导的梯度
