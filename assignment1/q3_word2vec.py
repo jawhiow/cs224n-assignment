@@ -69,7 +69,9 @@ def softmaxCostAndGradient(predicted, target, outputVectors, dataset):
     # 变成我们熟悉的内容
     # forward propagation
     # z = wx + b
+    # 这里的w1表示的比如skip-gram中的中心词，对应的是公式中的vc
     W1 = predicted        # shape=(3,1)=(特征，)
+    # X表示的是整个词表的单词，也就是对应了公式中的U
     X = outputVectors     # shape=(5,3)=(样本，特征)
     Z1 = np.dot(X, W1)    # shape=(5,1)=(样本，)
     # y_hat = softmax(z)
@@ -77,17 +79,16 @@ def softmaxCostAndGradient(predicted, target, outputVectors, dataset):
 
     # compute cost
     # 这里交叉熵为一个单词的损失函数，所以真实值为y=1
-    cost = -np.log(y_hat[target])  #shape=是一个标量
+    cost = -np.log(y_hat[target])   #shape=是一个标量
 
     # backward propagation
     # 这里的y_hat - y = y_hat - 1.0,代表的是交叉熵的损失函数的梯度
     # dCE / dz
     delta3 = y_hat.copy()
     delta3[target] -= 1.0    # shape=(5,1)=(样本，)
-    # dCE / dW1
+    # dCE / dW1  (在实际的公式中对应的是dCE/dvc)
     delta2 = np.dot(X.T, delta3)  # shape=(3,1)=(特征，)
-    # grad
-    # //TODO 这里到底是为什么
+    # grad (在实际公式中对应的是dCE/dU)
     dZ1 = np.outer(delta3, W1)  # shape=(5, 3) = (5, 1) * (3, 1).T
 
     ### END YOUR CODE
@@ -168,12 +169,12 @@ def skipgram(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
     Implement the skip-gram model in this function.
 
     Arguments:
-    currentWord -- a string of the current center word
-    C -- integer, context size
-    contextWords -- list of no more than 2*C strings, the context words
+    currentWord -- a string of the current center word 具体中str类型的单词
+    C -- integer, context size  窗口大小
+    contextWords -- list of no more than 2*C strings, the context words 窗口单词
     tokens -- a dictionary that maps words to their indices in
-              the word vector list
-    inputVectors -- "input" word vectors (as rows) for all tokens
+              the word vector list  存放了每个单词对应的索引
+    inputVectors -- "input" word vectors (as rows) for all tokens  通过token中的索引，可以找到对应的单词向量
     outputVectors -- "output" word vectors (as rows) for all tokens
     word2vecCostAndGradient -- the cost and gradient function for
                                a prediction vector given the target
@@ -190,15 +191,18 @@ def skipgram(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
     gradOut = np.zeros(outputVectors.shape)
 
     ### YOUR CODE HERE
-    cword_idx = tokens[currentWord]
-    vhat = inputVectors[cword_idx]
+
+    # 提取出中心词的索引
+    currentWordIdx = tokens[currentWord]
+    # 提取出来中心词的向量
+    v_c = inputVectors[currentWordIdx]
 
     for j in contextWords:
         u_idx = tokens[j]
         c_cost, c_grad_in, c_grad_out = \
-            word2vecCostAndGradient(vhat, u_idx, outputVectors, dataset)
+            word2vecCostAndGradient(v_c, u_idx, outputVectors, dataset)
         cost += c_cost
-        gradIn[cword_idx] += c_grad_in
+        gradIn += c_grad_in
         gradOut += c_grad_out
 
     ### END YOUR CODE
@@ -224,7 +228,20 @@ def cbow(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
     gradOut = np.zeros(outputVectors.shape)
 
     ### YOUR CODE HERE
-    raise NotImplementedError
+    # 提取出中心词的索引
+    currentWordIdx = tokens[currentWord]
+
+    v_hat = 0.0
+
+    # 提取出来窗口窗口词
+    for j in contextWords:
+        v_j_idx = tokens[j]
+        v_j = inputVectors[v_j_idx]
+        v_hat += v_j
+
+    cost, gradIn, gradOut = \
+        word2vecCostAndGradient(v_hat, currentWordIdx, outputVectors, dataset)
+
     ### END YOUR CODE
 
     return cost, gradIn, gradOut
@@ -289,12 +306,12 @@ def test_word2vec():
         skipgram, dummy_tokens, vec, dataset, 5, negSamplingCostAndGradient),
                     dummy_vectors)
     print("\n==== Gradient check for CBOW      ====")
-    # gradcheck_naive(lambda vec: word2vec_sgd_wrapper(
-    #     cbow, dummy_tokens, vec, dataset, 5, softmaxCostAndGradient),
-    #                 dummy_vectors)
-    # gradcheck_naive(lambda vec: word2vec_sgd_wrapper(
-    #     cbow, dummy_tokens, vec, dataset, 5, negSamplingCostAndGradient),
-    #                 dummy_vectors)
+    gradcheck_naive(lambda vec: word2vec_sgd_wrapper(
+        cbow, dummy_tokens, vec, dataset, 5, softmaxCostAndGradient),
+                    dummy_vectors)
+    gradcheck_naive(lambda vec: word2vec_sgd_wrapper(
+        cbow, dummy_tokens, vec, dataset, 5, negSamplingCostAndGradient),
+                    dummy_vectors)
 
     print("\n=== Results ===")
     print(skipgram("c", 3, ["a", "b", "e", "d", "b", "c"],
@@ -302,11 +319,11 @@ def test_word2vec():
     print(skipgram("c", 1, ["a", "b"],
                    dummy_tokens, dummy_vectors[:5, :], dummy_vectors[5:, :], dataset,
                    negSamplingCostAndGradient))
-    # print(cbow("a", 2, ["a", "b", "c", "a"],
-    #            dummy_tokens, dummy_vectors[:5, :], dummy_vectors[5:, :], dataset))
-    # print(cbow("a", 2, ["a", "b", "a", "c"],
-    #            dummy_tokens, dummy_vectors[:5, :], dummy_vectors[5:, :], dataset,
-    #            negSamplingCostAndGradient))
+    print(cbow("a", 2, ["a", "b", "c", "a"],
+               dummy_tokens, dummy_vectors[:5, :], dummy_vectors[5:, :], dataset))
+    print(cbow("a", 2, ["a", "b", "a", "c"],
+               dummy_tokens, dummy_vectors[:5, :], dummy_vectors[5:, :], dataset,
+               negSamplingCostAndGradient))
 
 
 if __name__ == "__main__":
