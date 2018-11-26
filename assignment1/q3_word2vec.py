@@ -200,10 +200,13 @@ def skipgram(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
         c_cost, c_grad_in, c_grad_out = \
             word2vecCostAndGradient(v_c, u_idx, outputVectors, dataset)
         cost += c_cost
-        gradIn += c_grad_in
+        # 只更新中心单词所有对应的梯度
+        gradIn[currentWordIdx] += c_grad_in
         gradOut += c_grad_out
 
     ### END YOUR CODE
+
+
 
     return cost, gradIn, gradOut
 
@@ -226,19 +229,20 @@ def cbow(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
     gradOut = np.zeros(outputVectors.shape)
 
     ### YOUR CODE HERE
-    # 提取出中心词的索引
+    # cbow是根据周边词取预测中间词
+    # 提取出输入窗口中所有单词的所有索引
+    word_idxs = [tokens[word] for word in contextWords]
+    # 计算出v_hat
+    v_hat = np.sum(inputVectors[word_idxs], axis=0)
     currentWordIdx = tokens[currentWord]
 
-    v_hat = 0.0
-
-    # 提取出来窗口窗口词
-    for j in contextWords:
-        v_j_idx = tokens[j]
-        v_j = inputVectors[v_j_idx]
-        v_hat += v_j
-
-    cost, gradIn, gradOut = \
+    cost_one, gradPrep, grad = \
         word2vecCostAndGradient(v_hat, currentWordIdx, outputVectors, dataset)
+
+    cost += cost_one
+    for idx in word_idxs:
+        gradIn[idx] += gradPrep
+    gradOut += grad
 
     ### END YOUR CODE
 
