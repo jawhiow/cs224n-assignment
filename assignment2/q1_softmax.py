@@ -24,6 +24,11 @@ def softmax(x):
     """
 
     ### YOUR CODE HERE
+    x_max = tf.reduce_max(x, 1, keepdims=True)          #shape=(2,1)=(sample,feature)
+    x_sub = x - x_max                                   #shape=(2,2)=(sample,feature)
+    x_exp = tf.exp(x_sub)                               #shape=(2,2)=(sample,feature)
+    sum_exp = tf.reduce_sum(x_exp, 1, keepdims=True)    #shape=(2,1)=(sample,feature)
+    out = x_exp / sum_exp                               #shape=(2,2)=(sample,feature)
     ### END YOUR CODE
 
     return out
@@ -54,6 +59,11 @@ def cross_entropy_loss(y, yhat):
     """
 
     ### YOUR CODE HERE
+    z = tf.cast(y, dtype=tf.float32) * tf.log(yhat)     #shape=(3,2)=(n_samples, n_classes)
+    out = - tf.reduce_sum(z)                            #shape=(1,)=(Scalar output)
+
+
+
     ### END YOUR CODE
 
     return out
@@ -67,16 +77,16 @@ def test_softmax_basic():
 
     test1 = softmax(tf.constant(np.array([[1001, 1002], [3, 4]]), dtype=tf.float32))
     with tf.Session() as sess:
-            test1 = sess.run(test1)
+        test1 = sess.run(test1)
     test_all_close("Softmax test 1", test1, np.array([[0.26894142, 0.73105858],
                                                       [0.26894142, 0.73105858]]))
 
     test2 = softmax(tf.constant(np.array([[-1001, -1002]]), dtype=tf.float32))
     with tf.Session() as sess:
-            test2 = sess.run(test2)
+        test2 = sess.run(test2)
     test_all_close("Softmax test 2", test2, np.array([[0.73105858, 0.26894142]]))
 
-    print "Basic (non-exhaustive) softmax tests pass\n"
+    print("Basic (non-exhaustive) softmax tests pass\n")
 
 
 def test_cross_entropy_loss_basic():
@@ -93,7 +103,8 @@ def test_cross_entropy_loss_basic():
     expected = -3 * np.log(.5)
     test_all_close("Cross-entropy test 1", test1, expected)
 
-    print "Basic (non-exhaustive) cross-entropy tests pass"
+    print("Basic (non-exhaustive) cross-entropy tests pass")
+
 
 if __name__ == "__main__":
     test_softmax_basic()

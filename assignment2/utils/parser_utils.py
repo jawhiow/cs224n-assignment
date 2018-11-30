@@ -6,7 +6,7 @@ import time
 import os
 import logging
 from collections import Counter
-from general_utils import get_minibatches
+from .general_utils import get_minibatches
 from q2_parser_transitions import minibatch_parse
 
 import numpy as np
@@ -84,7 +84,7 @@ class Parser(object):
         tok2id[ROOT] = self.ROOT = len(tok2id)
 
         self.tok2id = tok2id
-        self.id2tok = {v: k for (k, v) in tok2id.items()}
+        self.id2tok = {v: k for (k, v) in list(tok2id.items())}
 
         self.n_features = 18 + (18 if config.use_pos else 0) + (12 if config.use_dep else 0)
         self.n_tokens = len(tok2id)
@@ -122,7 +122,7 @@ class Parser(object):
             p_features = [self.P_NULL] * (3 - len(stack)) + [ex['pos'][x] for x in stack[-3:]]
             p_features += [ex['pos'][x] for x in buf[:3]] + [self.P_NULL] * (3 - len(buf))
 
-        for i in xrange(2):
+        for i in range(2):
             if i < len(stack):
                 k = stack[-i-1]
                 lc = get_lc(k)
@@ -199,10 +199,10 @@ class Parser(object):
 
             # arcs = {(h, t, label)}
             stack = [0]
-            buf = [i + 1 for i in xrange(n_words)]
+            buf = [i + 1 for i in range(n_words)]
             arcs = []
             instances = []
-            for i in xrange(n_words * 2):
+            for i in range(n_words * 2):
                 gold_t = self.get_oracle(stack, buf, ex)
                 if gold_t is None:
                     break
@@ -340,7 +340,7 @@ def minibatches(data, batch_size):
 def load_and_preprocess_data(reduced=True):
     config = Config()
 
-    print "Loading data...",
+    print("Loading data...", end=' ')
     start = time.time()
     train_set = read_conll(os.path.join(config.data_path, config.train_file),
                            lowercase=config.lowercase)
@@ -352,14 +352,14 @@ def load_and_preprocess_data(reduced=True):
         train_set = train_set[:1000]
         dev_set = dev_set[:500]
         test_set = test_set[:500]
-    print "took {:.2f} seconds".format(time.time() - start)
+    print("took {:.2f} seconds".format(time.time() - start))
 
-    print "Building parser...",
+    print("Building parser...", end=' ')
     start = time.time()
     parser = Parser(train_set)
-    print "took {:.2f} seconds".format(time.time() - start)
+    print("took {:.2f} seconds".format(time.time() - start))
 
-    print "Loading pretrained embeddings...",
+    print("Loading pretrained embeddings...", end=' ')
     start = time.time()
     word_vectors = {}
     for line in open(config.embedding_file).readlines():
@@ -373,19 +373,19 @@ def load_and_preprocess_data(reduced=True):
             embeddings_matrix[i] = word_vectors[token]
         elif token.lower() in word_vectors:
             embeddings_matrix[i] = word_vectors[token.lower()]
-    print "took {:.2f} seconds".format(time.time() - start)
+    print("took {:.2f} seconds".format(time.time() - start))
 
-    print "Vectorizing data...",
+    print("Vectorizing data...", end=' ')
     start = time.time()
     train_set = parser.vectorize(train_set)
     dev_set = parser.vectorize(dev_set)
     test_set = parser.vectorize(test_set)
-    print "took {:.2f} seconds".format(time.time() - start)
+    print("took {:.2f} seconds".format(time.time() - start))
 
-    print "Preprocessing training data...",
+    print("Preprocessing training data...", end=' ')
     start = time.time()
     train_examples = parser.create_instances(train_set)
-    print "took {:.2f} seconds".format(time.time() - start)
+    print("took {:.2f} seconds".format(time.time() - start))
 
     return parser, embeddings_matrix, train_examples, dev_set, test_set,
 

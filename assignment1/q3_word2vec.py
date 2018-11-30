@@ -130,25 +130,23 @@ def negSamplingCostAndGradient(predicted, target, outputVectors, dataset,
     indices.extend(getNegativeSamples(target, dataset, K))
 
     ### YOUR CODE HERE
+    grad = np.zeros(outputVectors.shape)  # (5, 3)
+    gradPred = np.zeros(predicted.shape)
 
-    W1 = predicted   # shape=(节点，1)  (3， 1)
+    v_c = predicted   # shape=(节点，1)  (3， 1)
     # forward propagation
-    X = outputVectors  # shape=(样本, 特征) (5, 3)
-    Z1 = np.dot(X, W1) # shape=(5, 1)=(样本, )
-    y_hat = softmax(Z1)   # shape=(5, 1)
+    u_o = outputVectors[target]  # shape=(样本, 特征) (3, )
+    Z1 = np.dot(u_o.T, v_c)
+    y_hat = sigmoid(Z1)
 
     # cost function
-    cost = -np.log(y_hat[target])
+    cost = -np.log(y_hat)
 
-    # backward propagation
-    delta3 = y_hat.copy()      # shape=(5,1)=(样本，)
-    delta3[target] -= 1.0
-    # dCE / dW1
-    delta2 = np.dot(X.T, y_hat)   # shape = (3, 5)*(5, 1) = (特征,)(3, 1)
-    dZ1 = np.outer(y_hat, W1)     # shape=(5, 3) = (5, 1) * (3, 1).T
-    gradPred = delta2
-    grad = dZ1
-
+    # calculate grad
+    # dJ / dvc
+    gradPred += (y_hat - 1) * u_o
+    # dJ / duo
+    grad[target] += (y_hat - 1) * v_c
     for k in range(K):
         # sigmod(-x) = 1 - sigmod(x)
         # 这里是负采样推导的梯度
@@ -202,10 +200,13 @@ def skipgram(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
         c_cost, c_grad_in, c_grad_out = \
             word2vecCostAndGradient(v_c, u_idx, outputVectors, dataset)
         cost += c_cost
-        gradIn += c_grad_in
+        # 只更新中心单词所有对应的梯度
+        gradIn[currentWordIdx] += c_grad_in
         gradOut += c_grad_out
 
     ### END YOUR CODE
+
+
 
     return cost, gradIn, gradOut
 
@@ -228,19 +229,20 @@ def cbow(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
     gradOut = np.zeros(outputVectors.shape)
 
     ### YOUR CODE HERE
-    # 提取出中心词的索引
+    # cbow是根据周边词取预测中间词
+    # 提取出输入窗口中所有单词的所有索引
+    word_idxs = [tokens[word] for word in contextWords]
+    # 计算出v_hat
+    v_hat = np.sum(inputVectors[word_idxs], axis=0)
     currentWordIdx = tokens[currentWord]
 
-    v_hat = 0.0
-
-    # 提取出来窗口窗口词
-    for j in contextWords:
-        v_j_idx = tokens[j]
-        v_j = inputVectors[v_j_idx]
-        v_hat += v_j
-
-    cost, gradIn, gradOut = \
+    cost_one, gradPrep, grad = \
         word2vecCostAndGradient(v_hat, currentWordIdx, outputVectors, dataset)
+
+    cost += cost_one
+    for idx in word_idxs:
+        gradIn[idx] += gradPrep
+    gradOut += grad
 
     ### END YOUR CODE
 
