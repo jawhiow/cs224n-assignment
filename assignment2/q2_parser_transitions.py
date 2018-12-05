@@ -22,7 +22,7 @@ class PartialParse(object):
 
         ### YOUR CODE HERE
         self.stack = []
-        self.buffer = []
+        self.buffer = self.sentence.copy()
         self.dependencies = []
         self.stack.append("ROOT")
         ### END YOUR CODE
@@ -36,8 +36,8 @@ class PartialParse(object):
                         transition.
         """
         ### YOUR CODE HERE
-        word = self.sentence.pop()
         if transition == "S":
+            word = self.buffer.pop(0)
             self.stack.append(word)
         elif transition == "LA":
             tmpWord1 = self.stack.pop()
@@ -85,13 +85,42 @@ def minibatch_parse(sentences, model, batch_size):
     """
 
     ### YOUR CODE HERE
-    ### END YOUR CODE
+    dependencies = []
+    # init partial_parses
+    partial_parses = [PartialParse(s) for s in sentences]
+    # init unfinished_parses
+    unfinished_parses = partial_parses.copy()
 
+    while len(unfinished_parses) >= batch_size:
+        # take the first batch_size parses
+        batch_size_parses = unfinished_parses[0:batch_size]
+        # Perform a parse step on each partial parse in the minibatch with its predicted transition
+        while len(batch_size_parses) > 0:
+            # Use the model to predict the next transition
+            transitions = model.predict(batch_size_parses)
+            index_list = []
+            for index, parse in enumerate(batch_size_parses):
+                parse.parse_step(transitions[index])
+                if len(parse.stack) == 1 and len(parse.buffer) == 0:
+                    dependencies.append(parse.dependencies)
+                    index_list.append(index)
+            for index in index_list:
+                batch_size_parses.pop(index)
+
+
+
+        # remove the completed parse
+        unfinished_parses = unfinished_parses[batch_size:]
+
+
+    ### END YOUR CODE
     return dependencies
 
 
 def test_step(name, transition, stack, buf, deps,
               ex_stack, ex_buf, ex_deps):
+    # test_step("SHIFT", "S", ["ROOT", "the"], ["cat", "sat"], [],
+    #           ("ROOT", "the", "cat"), ("sat",), ())
     """Tests that a single parse step returns the expected output"""
     pp = PartialParse([])
     pp.stack, pp.buffer, pp.dependencies = stack, buf, deps
@@ -127,7 +156,7 @@ def test_parse():
     dependencies = PartialParse(sentence).parse(["S", "S", "S", "LA", "RA", "RA"])
     dependencies = tuple(sorted(dependencies))
     expected = (('ROOT', 'parse'), ('parse', 'sentence'), ('sentence', 'this'))
-    assert dependencies == expected,  \
+    assert dependencies == expected, \
         "parse test resulted in dependencies {:}, expected {:}".format(dependencies, expected)
     assert tuple(sentence) == ("parse", "this", "sentence"), \
         "parse test failed: the input sentence should not be modified"
@@ -139,6 +168,7 @@ class DummyModel(object):
     First shifts everything onto the stack and then does exclusively right arcs if the first word of
     the sentence is "right", "left" if otherwise.
     """
+
     def predict(self, partial_parses):
         return [("RA" if pp.stack[1] is "right" else "LA") if len(pp.buffer) == 0 else "S"
                 for pp in partial_parses]
@@ -169,6 +199,7 @@ def test_minibatch_parse():
     test_dependencies("minibatch_parse", deps[3],
                       (('again', 'ROOT'), ('again', 'arcs'), ('again', 'left'), ('again', 'only')))
     print("minibatch_parse test passed!")
+
 
 if __name__ == '__main__':
     test_parse_step()
