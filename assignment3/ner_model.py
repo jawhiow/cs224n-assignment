@@ -5,6 +5,7 @@ A model for named entity recognition.
 """
 import pdb
 import logging
+from util import get_minibatches
 
 import tensorflow as tf
 from util import ConfusionMatrix, Progbar, minibatches
@@ -15,6 +16,7 @@ from defs import LBLS
 logger = logging.getLogger("hw3")
 logger.setLevel(logging.DEBUG)
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+
 
 class NERModel(Model):
     """
@@ -43,7 +45,6 @@ class NERModel(Model):
         """
         raise NotImplementedError("Each Model must re-implement this method.")
 
-
     def evaluate(self, sess, examples, examples_raw):
         """Evaluates model performance on @examples.
 
@@ -59,7 +60,7 @@ class NERModel(Model):
         token_cm = ConfusionMatrix(labels=LBLS)
 
         correct_preds, total_correct, total_preds = 0., 0., 0.
-        for _, labels, labels_  in self.output(sess, examples_raw, examples):
+        for _, labels, labels_ in self.output(sess, examples_raw, examples):
             for l, l_ in zip(labels, labels_):
                 token_cm.update(l, l_)
             gold = set(get_chunks(labels))
@@ -73,7 +74,6 @@ class NERModel(Model):
         f1 = 2 * p * r / (p + r) if correct_preds > 0 else 0
         return token_cm, (p, r, f1)
 
-
     def output(self, sess, inputs_raw, inputs=None):
         """
         Reports the output of the model on examples (uses helper to featurize each example).
@@ -82,7 +82,7 @@ class NERModel(Model):
             inputs = self.preprocess_sequence_data(self.helper.vectorize(inputs_raw))
 
         preds = []
-        prog = Progbar(target=1 + int(len(inputs) / self.config.batch_size))
+        prog = Progbar(target=1 + int(sum(1 for _ in inputs) / self.config.batch_size))
         for i, batch in enumerate(minibatches(inputs, self.config.batch_size, shuffle=False)):
             # Ignore predict
             batch = batch[:1] + batch[2:]
@@ -101,16 +101,17 @@ class NERModel(Model):
             logger.info("Epoch %d out of %d", epoch + 1, self.config.n_epochs)
             # You may use the progress bar to monitor the training progress
             # Addition of progress bar will not be graded, but may help when debugging
-            prog = Progbar(target=1 + int(len(train_examples) / self.config.batch_size))
-			
-			# The general idea is to loop over minibatches from train_examples, and run train_on_batch inside the loop
-			# Hint: train_examples could be a list containing the feature data and label data
-			# Read the doc for utils.get_minibatches to find out how to use it.
-                        # Note that get_minibatches could either return a list, or a list of list
-                        # [features, labels]. This makes expanding tuples into arguments (* operator) handy
+            prog = Progbar(target=1 + int(sum(1 for _ in train_examples) / self.config.batch_size))
+
+            # The general idea is to loop over minibatches from train_examples, and run train_on_batch inside the loop
+            # Hint: train_examples could be a list containing the feature data and label data
+            # Read the doc for utils.get_minibatches to find out how to use it.
+            # Note that get_minibatches could either return a list, or a list of list
+            # [features, labels]. This makes expanding tuples into arguments (* operator) handy
 
             ### YOUR CODE HERE (2-3 lines)
-
+            for feature, label in enumerate(get_minibatches(dev_set, self.config.batch_size, shuffle=False)):
+                pass
             ### END YOUR CODE
 
             logger.info("Evaluating on development data")
@@ -120,7 +121,7 @@ class NERModel(Model):
             logger.info("Entity level P/R/F1: %.2f/%.2f/%.2f", *entity_scores)
 
             score = entity_scores[-1]
-            
+
             if score > best_score:
                 best_score = score
                 if saver:

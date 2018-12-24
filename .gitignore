@@ -6,3 +6,4 @@ venv/
 .npy
 */data/*
 *.pkl
+*/results/*
